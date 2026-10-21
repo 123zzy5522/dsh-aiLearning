@@ -2,14 +2,15 @@
  * Enforce the dependency direction that makes the plugin boundary real.
  *
  *   plugins ──► sdk ◄── host ──► node:*
- *      └────────► node:* (host side only)
+ *      └────────► node:* except fs/child_process
  *
- * Without this check a plugin can import another plugin's internals and the
- * whole "independent pack" claim quietly stops being true.
+ * The rules themselves live in `import-rules.mjs` so they can be unit-tested;
+ * this file only walks the tree and reports.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { collectViolations } from "./import-rules.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SKIP = new Set(["node_modules", ".git", "dist", "backup", ".tmp"]);
@@ -24,55 +25,11 @@ function walk(dir, out = []) {
   return out;
 }
 
-const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*)["']([^"']+)["']/g;
-
-function specifiersOf(source) {
-  const found = [];
-  for (const match of source.matchAll(SPECIFIER)) found.push(match[1]);
-  return found;
-}
-
-function zoneOf(rel) {
-  if (rel.startsWith("sdk/")) return "sdk";
-  if (rel.startsWith("plugins/")) return "plugin";
-  if (rel.startsWith("host/") || rel === "index.js") return "host";
-  if (rel.startsWith("client/") || rel === "client.js") return "client";
-  return "tooling";
-}
-
-/** @returns {string|null} a human-readable violation, or null when allowed. */
-function violates(rel, spec) {
-  const zone = zoneOf(rel);
-  const builtin = spec.startsWith("node:");
-  const relative = spec.startsWith(".") || spec.startsWith("/");
-
-  if (builtin) {
-    // The SDK is loaded by the browser bundle too, so it may not touch Node.
-    return zone === "sdk" ? "sdk must stay isomorphic (no node: imports)" : null;
-  }
-  if (relative) {
-    // sdk may only depend on itself; everything else may reach into sdk.
-    if (zone === "sdk" && !rel.startsWith("sdk/")) return "sdk must not import outside sdk";
-    return null;
-  }
-
-  // Bare specifiers: only the client may depend on react (the shell provides it),
-  // and only dev tooling (scripts/, test/) may use devDependencies.
-  if (zone === "client" && spec === "react") return null;
-  if (zone === "plugin" && spec === "react" && /client\.[cm]?jsx?$/.test(rel)) return null;
-  if (zone === "tooling") return null;
-  return `bare import "${spec}" is not allowed in ${zone}`;
-}
-
 const files = walk(root);
 const violations = [];
 for (const file of files) {
   const rel = path.relative(root, file).replace(/\\/g, "/");
-  const source = fs.readFileSync(file, "utf8");
-  for (const spec of specifiersOf(source)) {
-    const reason = violates(rel, spec);
-    if (reason) violations.push(`${rel}: ${reason}`);
-  }
+  violations.push(...collectViolations(rel, fs.readFileSync(file, "utf8")));
 }
 
 if (violations.length > 0) {

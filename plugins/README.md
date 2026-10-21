@@ -31,11 +31,13 @@ plugins/
 
 Hard rules, enforced by `scripts/check-plugins.mjs` and `scripts/check-imports.mjs`:
 
-1. **No sideways imports.** A pack may import `node:*`, `../../sdk/*`, and its
-   own relative files. Importing another pack is a build error.
+1. **No sideways imports.** A pack may import `node:*` (except `node:fs` and
+   `node:child_process`), `../../sdk/*`, and its own relative files. Importing
+   another pack is a build error.
 2. **No credentials, no direct model calls.** Model access goes through the
    `llm` service the kernel injects.
-3. **No writes to `kp/*.md`.** Facts are produced by the kernel pipeline;
-   plugins record attempts through `progress.append()`.
+3. **No filesystem access.** The `node:fs` ban is what makes "plugins cannot
+   touch `kp/*.md`" a fact rather than a promise; record attempts through
+   `progress.append()` and store state via the host-provided path.
 4. **Book-scoped state only.** Persist under the paths the host hands you, never
    into the user's book directory directly.
