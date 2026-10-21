@@ -277,7 +277,25 @@ function Panel() {
   });
   const startLearn = () => run("\u6253\u5F00\u5B66\u4E60\u4F1A\u8BDD", async () => {
     const result = await call("/open", { method: "POST", body: JSON.stringify({ dir }) });
-    set({ notice: result.reused ? "\u5DF2\u56DE\u5230\u539F\u6765\u7684\u5B66\u4E60\u4F1A\u8BDD\u3002" : "\u5B66\u4E60\u4F1A\u8BDD\u5DF2\u521B\u5EFA,\u5DE6\u4FA7\u4F1A\u8BDD\u5217\u8868\u91CC\u80FD\u770B\u5230\u5B83\u3002" });
+    let opened = false;
+    if (result.sessionId) {
+      try {
+        const sessions = pluginCtx?.get?.("sessions") ?? pluginCtx?.sessions;
+        if (typeof sessions?.open === "function") {
+          sessions.open(result.sessionId);
+          opened = true;
+        }
+      } catch {
+      }
+    }
+    set({
+      notice: opened ? result.reused ? "\u5DF2\u6253\u5F00\u539F\u6765\u7684\u5B66\u4E60\u4F1A\u8BDD\u3002" : "\u5B66\u4E60\u4F1A\u8BDD\u5DF2\u521B\u5EFA\u5E76\u6253\u5F00\u3002" : result.reused ? "\u5DF2\u56DE\u5230\u539F\u6765\u7684\u5B66\u4E60\u4F1A\u8BDD\u3002" : "\u5B66\u4E60\u4F1A\u8BDD\u5DF2\u521B\u5EFA,\u5DE6\u4FA7\u4F1A\u8BDD\u5217\u8868\u91CC\u80FD\u770B\u5230\u5B83\u3002"
+    });
+  });
+  const changeMode = (modeId) => run("\u5207\u6362\u6A21\u5F0F", async () => {
+    await call("/mode", { method: "POST", body: JSON.stringify({ dir, mode: modeId }) });
+    set({ notice: "\u6A21\u5F0F\u5DF2\u5207\u6362\uFF0C\u4E0B\u4E00\u8F6E learn_status \u751F\u6548\u3002" });
+    await refresh();
   });
   const onBuildClick = () => {
     if (!dir) return;
@@ -370,6 +388,19 @@ function Panel() {
       h("div", { className: "al-sub" }, `${book.pages} \u9875 \xB7 ${book.chapters} \u7AE0 \xB7 \u76EE\u5F55${book.tocFound ? "\u5DF2\u8BC6\u522B" : "\u672A\u8BC6\u522B(\u6309\u7B49\u5206\u5207\u7AE0)"}`)
     ) : h("div", { className: "al-sub" }, dir ? "\u8FD9\u4E2A\u76EE\u5F55\u8FD8\u6CA1\u6709\u6559\u6750\u3002\u653E\u4E00\u4E2A PDF \u8FDB\u53BB,\u518D\u70B9\u300C\u5EFA\u7ACB\u77E5\u8BC6\u5E93\u300D\u3002" : "\u8FD8\u6CA1\u6709\u9009\u62E9\u76EE\u5F55\u3002"),
     h("div", { className: "al-sub", style: { marginTop: 8 } }, learning.message || "\u8FD8\u6CA1\u6709\u53EF\u5B66\u7684\u77E5\u8BC6\u70B9\u3002"),
+    (info?.modes?.length ?? 0) > 0 ? h(
+      "div",
+      { style: { display: "flex", gap: 8, alignItems: "center", marginTop: 8 } },
+      h("span", { className: "al-sub" }, "\u5B66\u4E60\u6A21\u5F0F"),
+      h("select", {
+        className: "al-input",
+        style: { marginBottom: 0, flex: 1, padding: "5px 8px" },
+        value: info.mode ?? info.modes[0].id,
+        disabled: busy,
+        onChange: (event) => changeMode(event.target.value)
+      }, info.modes.map((mode) => h("option", { key: mode.id, value: mode.id, title: mode.summary || "" }, mode.label))),
+      info.modes.length > 1 ? null : h("span", { className: "al-sub" }, "\uFF08\u88C5\u63D2\u4EF6\u53EF\u52A0\u6A21\u5F0F\uFF09")
+    ) : null,
     build ? h(
       "div",
       null,

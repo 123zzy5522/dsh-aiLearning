@@ -261,7 +261,30 @@ function Panel() {
 
   const startLearn = () => run("打开学习会话", async () => {
     const result = await call("/open", { method: "POST", body: JSON.stringify({ dir }) });
-    set({ notice: result.reused ? "已回到原来的学习会话。" : "学习会话已创建,左侧会话列表里能看到它。" });
+    // Creating the session host-side is not enough: the shell has to switch to
+    // it, otherwise the button looks like it did nothing. `ctx.sessions.open`
+    // is the same entry point the sidebar rows use.
+    let opened = false;
+    if (result.sessionId) {
+      try {
+        const sessions = pluginCtx?.get?.("sessions") ?? pluginCtx?.sessions;
+        if (typeof sessions?.open === "function") {
+          sessions.open(result.sessionId);
+          opened = true;
+        }
+      } catch { /* service absent on this build; fall back to the notice */ }
+    }
+    set({
+      notice: opened
+        ? (result.reused ? "已打开原来的学习会话。" : "学习会话已创建并打开。")
+        : (result.reused ? "已回到原来的学习会话。" : "学习会话已创建,左侧会话列表里能看到它。"),
+    });
+  });
+
+  const changeMode = (modeId) => run("切换模式", async () => {
+    await call("/mode", { method: "POST", body: JSON.stringify({ dir, mode: modeId }) });
+    set({ notice: "模式已切换，下一轮 learn_status 生效。" });
+    await refresh();
   });
 
   /**
@@ -353,6 +376,18 @@ function Panel() {
     ) : h("div", { className: "al-sub" }, dir ? "这个目录还没有教材。放一个 PDF 进去,再点「建立知识库」。" : "还没有选择目录。"),
 
     h("div", { className: "al-sub", style: { marginTop: 8 } }, learning.message || "还没有可学的知识点。"),
+
+    (info?.modes?.length ?? 0) > 0 ? h("div", { style: { display: "flex", gap: 8, alignItems: "center", marginTop: 8 } },
+      h("span", { className: "al-sub" }, "学习模式"),
+      h("select", {
+        className: "al-input",
+        style: { marginBottom: 0, flex: 1, padding: "5px 8px" },
+        value: info.mode ?? info.modes[0].id,
+        disabled: busy,
+        onChange: (event) => changeMode(event.target.value),
+      }, info.modes.map((mode) => h("option", { key: mode.id, value: mode.id, title: mode.summary || "" }, mode.label))),
+      info.modes.length > 1 ? null : h("span", { className: "al-sub" }, "（装插件可加模式）")
+    ) : null,
 
     build ? h("div", null,
       h("div", { className: "al-bar" }, h("i", { style: { width: pct + "%" } })),

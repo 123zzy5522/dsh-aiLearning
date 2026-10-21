@@ -34,6 +34,26 @@ test("GET /build returns one versioned snapshot the UI can render", async (t) =>
   assert.equal(body.build.state, "idle");
   assert.equal(body.learning.ready, true);
   assert.equal(body.learning.unseen, 1);
+  assert.ok(Array.isArray(body.modes) && body.modes.length >= 1, "plugin packs are exposed to the UI");
+  assert.ok(body.modes.some((mode) => mode.id === "review"));
+  assert.equal(body.mode, "beginner", "defaults to the first installed mode");
+});
+
+test("mode selection is persisted and unknown modes are refused", async (t) => {
+  const fixture = bookWithOneKp(t);
+  const route = boot();
+
+  const switched = await request(route, "POST", "/dsh-ailearn/api/mode", { dir: fixture.dir, mode: "review" });
+  assert.equal(switched.status, 200);
+  assert.equal(switched.body.ok, true);
+  assert.equal(switched.body.mode.id, "review");
+
+  const snapshot = await request(route, "GET", `/dsh-ailearn/api/build?dir=${encodeURIComponent(fixture.dir)}`);
+  assert.equal(snapshot.body.mode, "review");
+
+  const bad = await request(route, "POST", "/dsh-ailearn/api/mode", { dir: fixture.dir, mode: "nope" });
+  assert.equal(bad.status, 400);
+  assert.equal(bad.body.code, "mode/unknown");
 });
 
 test("errors carry a stable code, not just a sentence", async (t) => {

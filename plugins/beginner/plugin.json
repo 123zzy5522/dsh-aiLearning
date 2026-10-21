@@ -1,0 +1,9 @@
+{
+  "id": "beginner",
+  "apiVersion": 1,
+  "name": "从零学",
+  "description": "一次一个知识点，讲解后立即探测，答错重讲一次再前进。",
+  "entry": "./host.js",
+  "provides": { "mode": "beginner" },
+  "consumes": ["books", "progress"]
+}

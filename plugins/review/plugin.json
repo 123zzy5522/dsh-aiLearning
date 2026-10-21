@@ -1,0 +1,9 @@
+{
+  "id": "review",
+  "apiVersion": 1,
+  "name": "复习",
+  "description": "不先讲，直接混合出题；答错才补讲。按到期和薄弱排序。",
+  "entry": "./host.js",
+  "provides": { "mode": "review" },
+  "consumes": ["books", "progress"]
+}
