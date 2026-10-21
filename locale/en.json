@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "AI Textbook Learning",
+    "description": "Compiles a PDF textbook into a knowledge-point library, then drives a strict explain-probe-grade-record loop. One knowledge base and one study conversation per book."
+  }
+}

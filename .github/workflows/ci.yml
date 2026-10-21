@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same PR cancels the previous run: CI minutes are not free
+# and an outdated run cannot approve anything anyway.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # No runtime dependencies today, so there is no install step. Adding one
+      # later means adding `pnpm/action-setup` + `pnpm install --frozen-lockfile`
+      # here and committing the lockfile.
+      - name: Syntax, import boundaries, plugin manifests
+        run: npm run check
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Smoke test (no model, no Python)
+        run: npm run smoke

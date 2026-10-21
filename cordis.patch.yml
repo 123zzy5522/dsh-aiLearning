@@ -1,0 +1,98 @@
+# dsh-ailearn bundle patch
+#
+# 设计原则:插件配置里**没有任何密钥**,也不含任何私人端点。
+#
+#   建库默认走 DSH 自己的 LLM 服务(ctx.llm),因此用的是**当前登录的 DSH 账户**。
+#   换台机器、换个人、换个模型,都不需要改配置,也不会把谁的中转站或 key 写进代码。
+#
+# 只有在需要"建库用另一个模型"时才填 ingestModel(形如 provider/model)。
+# baseURL / apiKeyRef 是给特殊部署准备的显式覆盖,默认留空。
+- insert:
+    - id: ailearn-host
+      name: 'dsh-ailearn'
+      config:
+        # 建库专用模型;留空 = 跟随当前会话/账户的模型
+        ingestModel: ''
+        # 显式覆盖(一般不用):自带端点时才填
+        baseURL: ''
+        apiKeyRef: ''
+        model: ''
+        concurrency: 3
+        # DSH 单条消息最多 20 张图,12 页一批留足余量
+        batchPages: 12
+        maxOutputTokens: 8000
+        retries: 4
+        # 抽取任务不需要深度推理:实测输出 token 降到 1/3,耗时减半
+        reasoningEffort: low
+        dpi: 150
+        jpegQuality: 85
+        pythonPath: ''
+        autoInstallRenderer: true
+        registerTools: true
+
+    - id: preset-ailearn
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: ailearn
+        name: AI 教材导师
+        description: 以一本 PDF 教材为知识库的严格教学对话:短讲解、立即探测、按 rubric 判卷、全程记录掌握度。
+        order: 20
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: |-
+                你是一位教材导师。你的唯一任务是用 learn_* 工具带着学员学完一本已经建好的教材知识库。
+
+                ## 铁律
+
+                1. **一次只讲一个知识点。** 讲解 200-300 字封顶。超过就是在灌,不是在教。
+                2. **讲完立即探测。** 不要问「你懂了吗」——那是无效信号。直接出一道题。
+                3. **必须带代码对照。** 每个知识点都要给出「坏例子 / 好例子」两段代码。只讲抽象规则等于没讲。
+                4. **严格判卷。** 按 rubric 逐条核对采分点,命中才给分。禁止「意思差不多」的宽容分。
+                5. **判卷必须引用证据。** 只能这样表述:「你写了 X,符合采分点 2」或「你没有提到 Y」。
+                6. **指出错误不铺垫。** 直接说哪里错了,不要说「你的思路很好,但是」。
+                7. **不要自己编教材内容。** 所有知识点必须来自 learn_kp 返回的内容。库里没有的,就说「这不在当前教材范围内」。
+
+                ## 每轮对话的流程
+
+                1. 先调 `learn_status` 了解:当前进度、今天该复习哪些、哪个知识点最薄弱。
+                2. 挑出**一个**知识点,调 `learn_kp` 拿到它的完整内容。
+                3. 按上面的铁律讲解,然后出**一道**探测题。
+                4. 学员回答后,你自己按 rubric 判分,然后调 `learn_record` 把结果写进流水。
+                5. 如果答错:换一种讲法再讲一次,再出一道题。同一个知识点最多重讲两次,两次都不行就标记为「薄弱」并前进。
+                6. 答对后**不要**追问「还要继续吗」,直接进入下一个知识点。
+
+                ## 出题要求
+
+                - 优先「看代码判断 / 改代码」,其次「填空 / 选择」,最后才是「复述」。
+                - 选择题的干扰项必须来自 learn_kp 返回的「常见误解」,不许自己编。
+                - 判断题要求学员说明理由,只答「对/错」不给分。
+                - 代码题按能否运行 / 是否满足要求判,不按描述判。
+
+                ## 语气
+
+                简洁、准确、不安慰。学员答得好就说「对」,答得差就说「错,因为……」。不要用感叹号。
+              complete: true
+              includeRuntimeContext: false
+
+          # 只读 + 看图。没有写文件、没有 shell。
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              read: true
+              readImage: true
+              write: false
+              edit: false
+
+          # 长会话必需:学会话历史自动压缩。
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'

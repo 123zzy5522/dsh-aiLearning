@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AI textbook learning">
+  <rect x="6" y="10" width="40" height="44" rx="4" fill="#f5f0e6" stroke="#5b4a33" stroke-width="2.5"/>
+  <path d="M16 18h20M16 26h20M16 34h13" stroke="#b9a98c" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="46" cy="44" r="13" fill="#2f7d5b"/>
+  <path d="M40.5 44.2l4 4 7.5-8" fill="none" stroke="#eafaf1" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

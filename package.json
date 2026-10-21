@@ -1,0 +1,49 @@
+{
+  "name": "dsh-ailearn",
+  "version": "0.1.0",
+  "description": "AI textbook learning for DeepSeek Harness: compile a PDF textbook into a knowledge-point library, then drive a strict explain-probe-grade-record loop using the running DSH account.",
+  "type": "module",
+  "license": "MIT",
+  "private": false,
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./sdk": "./sdk/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "host",
+    "sdk",
+    "plugins",
+    "scripts",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node scripts/check-syntax.mjs && node scripts/check-imports.mjs && node scripts/check-plugins.mjs",
+    "test": "node scripts/run-tests.mjs",
+    "smoke": "node test/smoke.mjs",
+    "ci": "npm run check && npm run test && npm run smoke"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    }
+  },
+  "keywords": ["dsh", "deepseek-harness", "plugin", "textbook", "learning", "spaced-repetition"],
+  "engines": { "node": ">=18" },
+  "dshTarget": "0.2.1-rc.2",
+  "repository": { "type": "git", "url": "git+https://github.com/<you>/dsh-ailearn.git" },
+  "bugs": { "url": "https://github.com/<you>/dsh-ailearn/issues" },
+  "homepage": "https://github.com/<you>/dsh-ailearn#readme"
+}
