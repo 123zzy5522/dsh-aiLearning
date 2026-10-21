@@ -166,12 +166,13 @@ node cli.js status  "D:\books\aspnet"
 提交前跑这三条，和 GitHub Actions 完全一致，全程不需要模型、Python 或网络：
 
 ```powershell
-npm run check   # 语法 + 导入边界 + 插件 manifest
-npm run test    # 单元测试（node:test）
-npm run smoke   # 端到端：建库 → 合并 → 索引 → HTTP
+npm run check        # 语法 + 导入边界 + 插件 manifest
+npm run test         # 单元测试（node:test）
+npm run smoke        # 端到端：建库 → 合并 → 索引 → HTTP
+npm run build:client # 只在改了 client/src/ 时需要；CI 会校验产物是否最新
 ```
 
-`npm run check` 里的导入边界检查是硬约束：`plugins/` 里的能力包不许 import 另一个能力包，也不许碰 `kp/*.md`。这条规则由 CI 执行，不是靠自觉。
+`npm run check` 里的导入边界是硬约束：`plugins/` 里的能力包只能 import `sdk/`、`node:*`（`fs`/`child_process` 除外）和自己的文件——不许横向 import 另一个包，也不许把 Node 内核带进浏览器 bundle。这条规则由 CI 执行，不是靠自觉。
 
 CI 在 `.github/workflows/ci.yml`，`main` 分支要求 `verify` 通过才能合并。见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 

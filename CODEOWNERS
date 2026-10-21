@@ -1,5 +1,10 @@
-# Repository owner. Required by the "Require review from Code Owners" rule in
-# the main branch ruleset.
+# Repository owner.
+#
+# CODEOWNERS is only consulted when the ruleset enables "Require review from
+# Code Owners". That flag is currently off (approvals are 0, and GitHub does not
+# let an author approve their own PR, so enabling it today would deadlock every
+# merge). This file is preparation for the second maintainer: turn the rule on
+# together with `required_approving_review_count: 1`.
 
 *                       @123zzy5522
 

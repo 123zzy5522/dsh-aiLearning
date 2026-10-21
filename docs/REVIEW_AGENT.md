@@ -118,5 +118,5 @@ gh pr review <N> --comment --body "<结论>"
 ## 当前阶段背景（会过时，以 README 为准）
 
 - 单人维护：ruleset 要求 PR + `verify`，approvals 为 0，开启 auto-merge。
-- 正在从单体拆成 `host/ + sdk/ + plugins/`；`client.js` 尚未拆模块。
+- 正在从单体拆成 `host/ + sdk/ + plugins/`；客户端源码在 `client/src/`，`client.js` 是构建产物（`npm run build:client`），改 UI 要改源码而不是产物。
 - 数据模型还没加 `schemaVersion`，KP id 仍是有位置含义的编号（P3 要改）。
