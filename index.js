@@ -455,10 +455,10 @@ export function apply(ctx, config) {
         }).length;
         const unseen = Math.max(0, kps.length - assessed);
         const isRunning = running.has(dir);
-        // A job file that says "running" with no live control belongs to a
-        // process that died (DSH restart, crash). Showing it as running would
-        // promise progress that is not happening; the work is simply paused.
-        const state = job && job.status === "running" && !isRunning ? "paused" : (job?.status ?? "idle");
+        // An active worker wins over the last persisted status: a resumed job is
+        // written back as `running`, and during preparation no job file may exist
+        // yet. A stale `running` with no worker means the process died.
+        const state = isRunning ? "running" : (job?.status === "running" ? "paused" : (job?.status ?? "idle"));
         const learn = kps.length === 0
           ? emptyLearning("还没有可学的知识点。先建库，或者把已建的库继续建下去。")
           : {

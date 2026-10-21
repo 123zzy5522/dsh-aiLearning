@@ -267,7 +267,7 @@ function Panel() {
     let opened = false;
     if (result.sessionId) {
       try {
-        const sessions = pluginCtx?.get?.("sessions") ?? pluginCtx?.sessions;
+        const sessions = pluginCtx?.sessions ?? pluginCtx?.get?.("sessions");
         if (typeof sessions?.open === "function") {
           sessions.open(result.sessionId);
           opened = true;
@@ -544,7 +544,10 @@ function Launcher(props) {
 }
 
 export default {
-  inject: ["slots"],
+  // `sessions` is required to switch to the study session after /open. Without
+  // the inject, Cordis hides the service and `ctx.sessions` is undefined — the
+  // panel would keep saying "已创建" while the UI never moves.
+  inject: ["slots", "sessions"],
   apply(ctx) {
     pluginCtx = ctx;
     ctx.slots.inject("shell.overlay", () => ctx.slots.register({
