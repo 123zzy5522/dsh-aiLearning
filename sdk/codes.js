@@ -32,6 +32,9 @@ export const CODES = Object.freeze({
   /** No book.json yet: the library has not been prepared. */
   BOOK_NOT_READY: "book/not-ready",
 
+  /** Requested learning mode is not installed. */
+  UNKNOWN_MODE: "mode/unknown",
+
   /** The deployment has no session controller, so /open cannot create one. */
   SESSION_SERVICE_MISSING: "session/service-missing",
 });

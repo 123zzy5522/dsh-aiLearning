@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import {
   bookPaths, pluginDataDir, pythonCandidates, readJson, writeJson,
@@ -11,7 +12,10 @@ import { newJob, runJob, saveJob, latestJob, resetBuild } from "./host/job.js";
 import { readBook, writeBook } from "./host/store.js";
 import { rebuildMastery, dueQueue, coverageGap } from "./host/progress.js";
 import { registerTools } from "./host/tools.js";
+import { createRegistry, loadPacks, currentMode, setMode } from "./host/capabilities.js";
 import { API_VERSION, CODES, errorBody } from "./sdk/index.js";
+
+const PLUGIN_ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 export const name = "dsh-ailearn";
 export const inject = ["webServer", "credentials", "tools"];
@@ -364,8 +368,30 @@ async function readBody(req, maxBytes = 65536) {
 }
 
 export function apply(ctx, config) {
+  // Packs are discovered once per activation. A broken pack is reported and
+  // skipped: it must not be able to make the textbook unreadable.
+  const registry = createRegistry();
+  const packs = { loaded: [], failed: [] };
+  const ready = loadPacks(PLUGIN_ROOT, registry)
+    .then((result) => {
+      packs.loaded = result.loaded;
+      packs.failed = result.failed;
+      if (result.failed.length > 0) {
+        ctx.logger?.warn?.(`ailearn: ${result.failed.length} plugin pack(s) failed to load: ${result.failed.map((f) => `${f.id}: ${f.error}`).join("; ")}`);
+      }
+      return result;
+    })
+    .catch((error) => {
+      packs.failed.push({ id: "(loader)", error: String(error?.message || error) });
+      return packs;
+    });
+
   if (config.registerTools !== false) {
-    registerTools(ctx, { buildAction: buildActionFactory(ctx, config) });
+    registerTools(ctx, {
+      buildAction: buildActionFactory(ctx, config),
+      registry,
+      awaitPacks: () => ready,
+    });
   }
 
   const route = async (req, res) => {
@@ -393,6 +419,7 @@ export function apply(ctx, config) {
       }
 
       if (pathname === "/build" && req.method === "GET") {
+        await ready;
         // Never create `.aiLearn/` for a path the user merely typed: a status
         // read must not leave directories behind on a typo.
         if (!dir || !fs.existsSync(dir)) {
@@ -404,8 +431,10 @@ export function apply(ctx, config) {
             library: { kps: 0, chapters: 0 },
             build: emptyBuild("idle"),
             learning: emptyLearning("这个目录不存在，或者还没有教材。"),
-            modes: [],
-            capabilities: [],
+            modes: registry.modes(),
+            mode: null,
+            capabilities: registry.list(),
+            packs,
           });
         }
         const paths = bookPaths(dir);
@@ -459,9 +488,23 @@ export function apply(ctx, config) {
             batches: (job?.batches ?? []).map((b) => ({ id: b.id, status: b.status, items: b.items ?? 0, error: b.error })),
           },
           learning: learn,
-          modes: [],
-          capabilities: [],
+          modes: registry.modes(),
+          mode: book ? currentMode(dir, registry) : null,
+          capabilities: registry.list(),
+          packs,
         });
+      }
+
+      if (pathname === "/mode" && req.method === "POST") {
+        await ready;
+        const body = await readBody(req);
+        if (!body.dir) return sendJson(res, 400, errorBody(CODES.NO_DIR, "缺少 dir"));
+        try {
+          const mode = setMode(body.dir, registry, body.mode);
+          return sendJson(res, 200, { ok: true, mode });
+        } catch (error) {
+          return sendJson(res, 400, errorBody(CODES.UNKNOWN_MODE, String(error?.message || error), { mode: body.mode }));
+        }
       }
 
       if (pathname === "/build/start" && req.method === "POST") {

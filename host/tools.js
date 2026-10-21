@@ -4,6 +4,7 @@ import { defineTool } from "./toolkit.js";
 import { bookPaths, readJson } from "./config.js";
 import { readBook, loadAllKps, findKp } from "./store.js";
 import { rebuildMastery, dueQueue, coverageGap, appendEvent } from "./progress.js";
+import { currentMode, setMode } from "./capabilities.js";
 
 /**
  * The agent-facing half of the plugin. Every tool reads or writes the same
@@ -27,9 +28,12 @@ function requireBook(bookDir) {
 }
 
 export function registerTools(ctx, deps) {
+  const registry = deps.registry ?? null;
+  const awaitPacks = deps.awaitPacks ?? (async () => null);
+
   ctx.tools.register(defineTool({
     name: "learn_status",
-    description: "Show the current textbook, learning progress, the knowledge points most worth asking about now, and coverage debt. Call this first in every study turn.",
+    description: "Show the current textbook, the active learning mode and its rules, learning progress, the knowledge points most worth asking about now, and coverage debt. Call this first in every study turn.",
     parameters: {
       bookDir: { type: "string", description: "Textbook workspace directory. Defaults to the current workspace." },
       limit: { type: "integer", description: "How many candidate knowledge points to return (default 6)." },
@@ -46,24 +50,35 @@ export function registerTools(ctx, deps) {
           due: { type: "array", required: true, items: { type: "object", additionalProperties: false, properties: { id: { type: "string", required: true }, title: { type: "string", required: true }, section: { type: "string" }, priority: { type: "integer", required: true } } } },
           weak: { type: "integer", required: true },
           illusions: { type: "integer", required: true },
+          modeId: { type: "string", required: true },
+          modeLabel: { type: "string", required: true },
+          modeRules: { type: "string", required: true },
         },
       },
       render: (_args, value) => [{
         type: "text",
         text: [
           `教材: ${value.book} (${value.chapters} 章 / ${value.totalKps} 个知识点, 已测 ${value.assessed})`,
+          `当前模式: ${value.modeLabel} (${value.modeId})`,
+          "",
+          "## 本模式的规则（必须遵守）",
+          value.modeRules,
+          "",
           `薄弱 ${value.weak} 个, 幻觉点 ${value.illusions} 个`,
           "建议下一个讲:",
           ...value.due.map((item, i) => `  ${i + 1}. ${item.id} ${item.title}${item.section ? ` (${item.section})` : ""} 优先级 ${item.priority}`),
         ].join("\n"),
       }],
     },
-    execute(args, exec) {
+    async execute(args, exec) {
+      await awaitPacks();
       const bookDir = resolveBookDir(exec, args.bookDir);
       const book = requireBook(bookDir);
       const mastery = rebuildMastery(bookDir);
       const queue = dueQueue(bookDir, book, args.limit ?? 6);
       const index = readJson(bookPaths(bookDir).index, { kps: [] });
+      const modeId = registry ? currentMode(bookDir, registry) : null;
+      const mode = modeId && registry ? registry.mode(modeId) : null;
       return {
         book: book.title,
         chapters: (book.chapters ?? []).length,
@@ -72,6 +87,47 @@ export function registerTools(ctx, deps) {
         due: queue.map((item) => ({ id: item.id, title: item.title, section: item.section ?? null, priority: item.priority })),
         weak: mastery.summary.weak,
         illusions: mastery.summary.illusions,
+        modeId: modeId ?? "unset",
+        modeLabel: mode?.label ?? "未安装模式插件",
+        modeRules: mode?.rules ?? "没有可用模式：按“一次一个知识点、讲完立即出题、严格判卷”执行。",
+      };
+    },
+  }));
+
+  ctx.tools.register(defineTool({
+    name: "learn_mode",
+    description: "List installed learning modes, or switch the current mode. Modes are plugins: each one supplies its own teaching rules. Switch at the start of a session, not mid-lesson.",
+    parameters: {
+      mode: { type: "string", description: "Mode id to activate. Omit to list installed modes." },
+      bookDir: { type: "string", description: "Textbook workspace directory." },
+    },
+    output: {
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          active: { type: "string", required: true },
+          modes: { type: "array", required: true, items: { type: "object", additionalProperties: false, properties: { id: { type: "string", required: true }, label: { type: "string", required: true }, summary: { type: "string" } } } },
+        },
+      },
+      render: (_args, value) => [{
+        type: "text",
+        text: [
+          `当前模式: ${value.active}`,
+          "可用模式:",
+          ...value.modes.map((mode) => `  - ${mode.id}: ${mode.label}${mode.summary ? ` — ${mode.summary}` : ""}`),
+        ].join("\n"),
+      }],
+    },
+    async execute(args, exec) {
+      await awaitPacks();
+      if (!registry) throw new Error("capability registry is unavailable");
+      const bookDir = resolveBookDir(exec, args.bookDir);
+      requireBook(bookDir);
+      if (args.mode) setMode(bookDir, registry, args.mode);
+      return {
+        active: currentMode(bookDir, registry) ?? "unset",
+        modes: registry.modes().map((mode) => ({ id: mode.id, label: mode.label, summary: mode.summary })),
       };
     },
   }));

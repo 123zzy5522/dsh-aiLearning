@@ -1,0 +1,9 @@
+{
+  "id": "sprint",
+  "apiVersion": 1,
+  "name": "快速过",
+  "description": "只讲一句话和常见误解，不判分，只标记看过。适合第一遍扫盲。",
+  "entry": "./host.js",
+  "provides": { "mode": "sprint" },
+  "consumes": ["books", "progress"]
+}
