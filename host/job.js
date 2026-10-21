@@ -116,6 +116,10 @@ export async function runJob(runtime, job, options = {}) {
   let cursor = 0;
 
   note(job, `start: ${pending.length} pending, concurrency ${concurrency}`);
+  // A resumed job keeps its previous status (`partial` / `paused`) on disk. The
+  // UI reads that status to decide whether to show 暂停, so it has to flip to
+  // `running` before the first batch finishes, not after.
+  job.status = "running";
   saveJob(runtime.paths, job);
 
   const worker = async () => {

@@ -58,5 +58,7 @@ test("the built client bundle registers a loadable plugin", () => {
   assert.equal(typeof exports.apply, "function", "the plugin must export apply()");
   // The array comes from another VM realm, so compare contents instead of
   // prototype identity (deepStrictEqual also checks the prototype chain).
-  assert.equal(Array.from(exports.inject).join(","), "slots");
+  const inject = Array.from(exports.inject);
+  assert.ok(inject.includes("slots"), "the panel registers through slots");
+  assert.ok(inject.includes("sessions"), "opening a study session needs the sessions service");
 });
