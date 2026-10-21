@@ -56,9 +56,11 @@ function violates(rel, spec) {
     return null;
   }
 
-  // Bare specifiers: only the client may depend on react (the shell provides it).
+  // Bare specifiers: only the client may depend on react (the shell provides it),
+  // and only dev tooling (scripts/, test/) may use devDependencies.
   if (zone === "client" && spec === "react") return null;
   if (zone === "plugin" && spec === "react" && /client\.[cm]?jsx?$/.test(rel)) return null;
+  if (zone === "tooling") return null;
   return `bare import "${spec}" is not allowed in ${zone}`;
 }
 

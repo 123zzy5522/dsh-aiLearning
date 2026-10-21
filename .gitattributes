@@ -1,0 +1,6 @@
+# Keep the repository line endings stable so a build on CI and a build on
+# Windows produce byte-identical bundles (the freshness check compares them).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary

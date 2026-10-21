@@ -30,20 +30,42 @@
     "check": "node scripts/check-syntax.mjs && node scripts/check-imports.mjs && node scripts/check-plugins.mjs",
     "test": "node scripts/run-tests.mjs",
     "smoke": "node test/smoke.mjs",
+    "build:client": "node scripts/build-client.mjs",
     "ci": "npm run check && npm run test && npm run smoke"
   },
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "immediately": true,
-      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
     }
   },
-  "keywords": ["dsh", "deepseek-harness", "plugin", "textbook", "learning", "spaced-repetition"],
-  "engines": { "node": ">=18" },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "textbook",
+    "learning",
+    "spaced-repetition"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "dshTarget": "0.2.1-rc.2",
-  "repository": { "type": "git", "url": "git+https://github.com/123zzy5522/dsh-aiLearning.git" },
-  "bugs": { "url": "https://github.com/123zzy5522/dsh-aiLearning/issues" },
-  "homepage": "https://github.com/123zzy5522/dsh-aiLearning#readme"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/123zzy5522/dsh-aiLearning.git"
+  },
+  "bugs": {
+    "url": "https://github.com/123zzy5522/dsh-aiLearning/issues"
+  },
+  "homepage": "https://github.com/123zzy5522/dsh-aiLearning#readme",
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
 }
