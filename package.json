@@ -43,7 +43,7 @@
   "keywords": ["dsh", "deepseek-harness", "plugin", "textbook", "learning", "spaced-repetition"],
   "engines": { "node": ">=18" },
   "dshTarget": "0.2.1-rc.2",
-  "repository": { "type": "git", "url": "git+https://github.com/<you>/dsh-ailearn.git" },
-  "bugs": { "url": "https://github.com/<you>/dsh-ailearn/issues" },
-  "homepage": "https://github.com/<you>/dsh-ailearn#readme"
+  "repository": { "type": "git", "url": "git+https://github.com/123zzy5522/dsh-aiLearning.git" },
+  "bugs": { "url": "https://github.com/123zzy5522/dsh-aiLearning/issues" },
+  "homepage": "https://github.com/123zzy5522/dsh-aiLearning#readme"
 }

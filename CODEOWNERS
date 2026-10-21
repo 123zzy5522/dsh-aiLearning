@@ -1,13 +1,10 @@
-# Replace @your-github-handle with the repository owner's account before enabling
-# "Require review from Code Owners" in the branch ruleset.
-#
-# Until it is replaced, GitHub treats these entries as invalid owners and the
-# Code Owners requirement silently does nothing — the status checks still gate.
+# Repository owner. Required by the "Require review from Code Owners" rule in
+# the main branch ruleset.
 
-*                       @your-github-handle
+*                       @123zzy5522
 
 # The public contract and the CI configuration are the two places where a
 # mistake is expensive for every plugin, so they are called out explicitly.
-/sdk/                   @your-github-handle
-/.github/               @your-github-handle
-/scripts/               @your-github-handle
+/sdk/                   @123zzy5522
+/.github/               @123zzy5522
+/scripts/               @123zzy5522

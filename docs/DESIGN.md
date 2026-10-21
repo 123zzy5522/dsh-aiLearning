@@ -434,16 +434,16 @@ prefix: |
 
 ```powershell
 cd D:\dsh-plugin
-git init
+git init -b main
 git add .
 git commit -m "feat: textbook learning plugin with zero-credential ingest"
-git remote add origin https://github.com/<you>/dsh-ailearn.git
+git remote add origin https://github.com/123zzy5522/dsh-aiLearning.git
 git push -u origin main
 ```
 
-别人安装:`安装第三方插件 → github:<you>/dsh-ailearn`
+别人安装:`安装第三方插件 → github:123zzy5522/dsh-aiLearning`
 
-**提交前检查**:`package.json` 里 `repository` 的 `<you>` 要替换;确认没有 `sk-` / 私人端点(当前已确认干净)。
+**提交前检查**:已确认无 `sk-` / 私人端点;`repository` 指向 `123zzy5522/dsh-aiLearning`。
 
 ### 凭据安全
 

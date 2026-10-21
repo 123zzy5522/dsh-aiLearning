@@ -30,7 +30,7 @@ PDF 课本  ──(建库流水线)──►  .aiLearn/kp/*.md
 
 ```
 DSH → 设置 → 插件 → 安装第三方插件
-  → 填 GitHub 地址:  github:<你的账号>/dsh-ailearn
+  → 填 GitHub 地址:  github:123zzy5522/dsh-aiLearning
 ```
 
 或者本地开发:
