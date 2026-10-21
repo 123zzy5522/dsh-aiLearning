@@ -3,7 +3,7 @@ import path from "node:path";
 import { bookPaths, readJson, writeJson } from "./config.js";
 import { renderPages } from "./pdf.js";
 import { chat, chatViaLlmService, imageBlock, textBlock, parseJsonReply, resolveLlmRoute } from "./llm.js";
-import { renderKp, kpFileName } from "./store.js";
+import { renderKp, kpFileName, makeKpId } from "./store.js";
 
 /**
  * The ingest pipeline: page images -> knowledge points.
@@ -373,6 +373,18 @@ export function planBatches(book) {
   return batches;
 }
 
+/** Two sections can normalize to the same id; keep the first and suffix the rest. */
+function uniqueId(base, used) {
+  let id = base;
+  let suffix = 2;
+  while (used.has(id)) {
+    id = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  used.add(id);
+  return id;
+}
+
 /** Merge every batch of one chapter into `kp/NN-title.md`. */
 export function mergeChapter(ctx, book, chapterNo) {
   const chapter = (book.chapters ?? []).find((c) => c.no === chapterNo);
@@ -382,8 +394,8 @@ export function mergeChapter(ctx, book, chapterNo) {
     : [];
   if (files.length === 0) return null;
   const seen = new Set();
+  const usedIds = new Set();
   const kps = [];
-  let n = 0;
   for (const name of files.sort()) {
     const data = readJson(path.join(ctx.paths.partialDir, name), null);
     if (!data) continue;
@@ -391,9 +403,9 @@ export function mergeChapter(ctx, book, chapterNo) {
       const key = item.section || item.title;
       if (seen.has(key)) continue;
       seen.add(key);
-      n += 1;
+      const id = uniqueId(makeKpId(chapterNo, item), usedIds);
       kps.push({
-        id: `KP-${String(chapterNo).padStart(2, "0")}${String(n).padStart(2, "0")}`,
+        id,
         title: item.title,
         section: item.section,
         printPage: item.pdfPage - (book.pageOffset ?? 0),
