@@ -136,7 +136,7 @@ export function registerTools(ctx, deps) {
     name: "learn_kp",
     description: "Read one knowledge point in full: its claim, the book's supporting excerpt, the bad/good code pair, and the common misconceptions. Everything you teach must come from here.",
     parameters: {
-      id: { type: "string", required: true, description: "Knowledge point id, such as KP-0203." },
+      id: { type: "string", required: true, description: "Knowledge point id, such as KP-02-2.1.3." },
       bookDir: { type: "string", description: "Textbook workspace directory." },
     },
     output: {

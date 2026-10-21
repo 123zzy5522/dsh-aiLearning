@@ -3,7 +3,16 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { makeBook, cleanup } from "../helpers/fixture.mjs";
-import { renderKp, parseKpMarkdown, kpFileName, rebuildIndex, loadAllKps } from "../../host/store.js";
+import { renderKp, parseKpMarkdown, kpFileName, rebuildIndex, loadAllKps, makeKpId } from "../../host/store.js";
+
+test("ids come from the section, not from extraction order", () => {
+  assert.equal(makeKpId(2, { section: "2.1.3", title: "x" }), "KP-02-2.1.3");
+  assert.equal(makeKpId(12, { section: "12.4", title: "y" }), "KP-12-12.4");
+  assert.match(makeKpId(5, { title: "本章小结" }), /^KP-05-h[a-z0-9]+$/);
+  // Same section always maps to the same id, which is what keeps mastery alive
+  // across a re-extraction.
+  assert.equal(makeKpId(3, { section: "3.2.1" }), makeKpId(3, { section: "3.2.1" }));
+});
 
 const SAMPLE = {
   id: "KP-0101",

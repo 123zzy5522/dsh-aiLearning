@@ -9,8 +9,30 @@ import { bookPaths, readJson, writeJson } from "./config.js";
  * hand in thirty seconds. `index.json` is a derived cache, never the source.
  */
 
-export const KP_HEADING = /^##\s+(KP-\d{4})\s+(.*)$/;
+/**
+ * Knowledge point ids are derived from the section, not from the order the
+ * extractor happened to emit them. A positional id (`KP-0203`) silently
+ * renumbers every later knowledge point when one batch is re-extracted, which
+ * orphans the attempts already recorded against the old ids.
+ *
+ * `KP-02-2.1.3` survives a re-extraction of the same section; when a section is
+ * missing, a short title hash is used so the id is still stable per title.
+ */
+export const KP_HEADING = /^##\s+(KP-[A-Za-z0-9][A-Za-z0-9.-]*)\s+(.*)$/;
 export const SUB_HEADING = /^###\s+(.+?)\s*$/;
+
+export function makeKpId(chapterNo, { section, title } = {}) {
+  const chapter = String(chapterNo).padStart(2, "0");
+  const normalized = String(section ?? "").trim();
+  if (/^\d+(?:\.\d+)*$/.test(normalized)) return `KP-${chapter}-${normalized}`;
+  return `KP-${chapter}-h${shortHash(String(title ?? ""))}`;
+}
+
+function shortHash(text) {
+  let hash = 5381;
+  for (let i = 0; i < text.length; i += 1) hash = ((hash << 5) + hash + text.charCodeAt(i)) >>> 0;
+  return hash.toString(36).slice(0, 6);
+}
 
 /** Render one knowledge point to its canonical Markdown block. */
 export function renderKp(kp) {
