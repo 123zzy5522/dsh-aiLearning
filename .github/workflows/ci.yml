@@ -25,12 +25,20 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 20
+          cache: npm
 
-      # No runtime dependencies today, so there is no install step. Adding one
-      # later means adding `pnpm/action-setup` + `pnpm install --frozen-lockfile`
-      # here and committing the lockfile.
+      - name: Install dev dependencies
+        run: npm ci
+
       - name: Syntax, import boundaries, plugin manifests
         run: npm run check
+
+      # The committed bundle is what DSH loads; a stale one means the shipped
+      # plugin differs from the source. Rebuild and require a clean diff.
+      - name: Client bundle is up to date
+        run: |
+          npm run build:client
+          git diff --exit-code -- client.js
 
       - name: Unit tests
         run: npm run test
