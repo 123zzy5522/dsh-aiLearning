@@ -7,6 +7,7 @@
  */
 
 import React from "react";
+import { openSession } from "./navigate.js";
 const h = React.createElement;
 const API = "/dsh-ailearn/api";
 
@@ -262,18 +263,19 @@ function Panel() {
   const startLearn = () => run("打开学习会话", async () => {
     const result = await call("/open", { method: "POST", body: JSON.stringify({ dir }) });
     // Creating the session host-side is not enough: the shell has to switch to
-    // it, otherwise the button looks like it did nothing. `ctx.sessions.open`
-    // is the same entry point the sidebar rows use.
-    let opened = false;
-    if (result.sessionId) {
-      try {
-        const sessions = pluginCtx?.sessions ?? pluginCtx?.get?.("sessions");
-        if (typeof sessions?.open === "function") {
-          sessions.open(result.sessionId);
-          opened = true;
-        }
-      } catch { /* service absent on this build; fall back to the notice */ }
-    }
+    // it, otherwise the button looks like it did nothing. The main-view entry
+    // point is `uiWorkspace.openSession` — the same one the sidebar rows and
+    // the conversation header use. It is resolved lazily because the panel
+    // must still work in a build that does not publish it.
+    const services = {
+      get uiWorkspace() {
+        try { return pluginCtx?.get?.("uiWorkspace") ?? pluginCtx?.uiWorkspace; } catch { return undefined; }
+      },
+      get sessions() {
+        try { return pluginCtx?.get?.("sessions") ?? pluginCtx?.sessions; } catch { return undefined; }
+      },
+    };
+    const opened = await openSession(services, result.sessionId);
     set({
       notice: opened
         ? (result.reused ? "已打开原来的学习会话。" : "学习会话已创建并打开。")
