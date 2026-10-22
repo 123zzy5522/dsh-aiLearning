@@ -39,6 +39,37 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 var import_react = __toESM(require("react"), 1);
+
+// client/src/navigate.js
+async function waitForSession(sessions, sessionId, options = {}) {
+  const { attempts = 20, delayMs = 50 } = options;
+  const known = () => Boolean(sessions?.list?.getSnapshot?.()?.byId?.[sessionId]);
+  if (sessions === void 0 || known()) return known();
+  if (typeof sessions.refresh === "function") {
+    try {
+      await sessions.refresh();
+    } catch {
+    }
+  }
+  for (let attempt = 0; attempt < attempts && !known(); attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return known();
+}
+async function openSession(services, sessionId, options = {}) {
+  if (!sessionId) return false;
+  const workspace = services?.uiWorkspace;
+  if (typeof workspace?.openSession !== "function") return false;
+  await waitForSession(services?.sessions, sessionId, options);
+  try {
+    workspace.openSession(sessionId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// client/src/index.js
 var h = import_react.default.createElement;
 var API = "/dsh-ailearn/api";
 var pluginCtx = null;
@@ -277,17 +308,23 @@ function Panel() {
   });
   const startLearn = () => run("\u6253\u5F00\u5B66\u4E60\u4F1A\u8BDD", async () => {
     const result = await call("/open", { method: "POST", body: JSON.stringify({ dir }) });
-    let opened = false;
-    if (result.sessionId) {
-      try {
-        const sessions = pluginCtx?.sessions ?? pluginCtx?.get?.("sessions");
-        if (typeof sessions?.open === "function") {
-          sessions.open(result.sessionId);
-          opened = true;
+    const services = {
+      get uiWorkspace() {
+        try {
+          return pluginCtx?.get?.("uiWorkspace") ?? pluginCtx?.uiWorkspace;
+        } catch {
+          return void 0;
         }
-      } catch {
+      },
+      get sessions() {
+        try {
+          return pluginCtx?.get?.("sessions") ?? pluginCtx?.sessions;
+        } catch {
+          return void 0;
+        }
       }
-    }
+    };
+    const opened = await openSession(services, result.sessionId);
     set({
       notice: opened ? result.reused ? "\u5DF2\u6253\u5F00\u539F\u6765\u7684\u5B66\u4E60\u4F1A\u8BDD\u3002" : "\u5B66\u4E60\u4F1A\u8BDD\u5DF2\u521B\u5EFA\u5E76\u6253\u5F00\u3002" : result.reused ? "\u5DF2\u56DE\u5230\u539F\u6765\u7684\u5B66\u4E60\u4F1A\u8BDD\u3002" : "\u5B66\u4E60\u4F1A\u8BDD\u5DF2\u521B\u5EFA,\u5DE6\u4FA7\u4F1A\u8BDD\u5217\u8868\u91CC\u80FD\u770B\u5230\u5B83\u3002"
     });
